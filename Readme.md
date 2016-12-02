@@ -41,7 +41,9 @@ echo -n "dom1" | xxd -p
 ```
 - Format the hex name as a UUID and assign it to the domain in the xen config
   file for the domain.
-`uuid = "646f6d31-0000-0000-0000-000000000000"`
+```
+uuid = "646f6d31-0000-0000-0000-000000000000"
+```
 
 ### Pool Id
 
