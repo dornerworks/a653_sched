@@ -25,31 +25,28 @@ frames and a 60 ms major frame.  The two guest VMs have 10 ms and 30 ms
 minor frames respectively, while a 20 ms minor frame is given to idle
 processing.
 
-`./a653_sched -p 1 dom1:10 :20 dom2:30`
+`./a653_sched -p arinc_pool dom1:10 :20 dom2:30`
 
-### Domain Configuration
+### Domain UUID
 
 This tool assumes that each domain in the schedule (except for Dom0) has
-been assigned a UUID that is representable as an ASCII string.
+been assigned a UUID in it's xen config file.  For example:
 
-To set a domain's UUID accordingly:
-
-- Convert the domain's name to hex
 ```
-echo -n "dom1" | xxd -p
-646f6d31
-```
-- Format the hex name as a UUID and assign it to the domain in the xen config
-  file for the domain.
-```
-uuid = "646f6d31-0000-0000-0000-000000000000"
+name = "dhyi"
+uuid = "64687969-0000-0000-0000-000000000000"
 ```
 
-### Pool Id
+This UUID will be retreived from the xenstore as long as the domain has
+been created for this platform at least once in the past.
 
-The ID of a scheduling pool can be found by running the command
-`xenstore-ls /local/pool` after the pool has been created.  The initial pool
-has an id of 0.
+If a UUID is not assigned to the domain, the uuid may change each time the
+domain is created; a situation which this tool is not able to handle.
+
+If you have already created the domain previously without setting a UUID
+you will need to clear the domain information cached in the xenstore
+to avoid UUID conflicts.  To do this run the `xenstore-rm /vm`
+command in dom0.
 
 ### Help
 ```
@@ -59,5 +56,5 @@ Usage: ./a653_sched <domname:runtime> ...
 	Major Frame is the sum of all runtimes
 Options:
 	--help|-h		display this usage information
-	--pool|-p		pool id
+	--pool|-p		pool name
 ```

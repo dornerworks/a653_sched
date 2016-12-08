@@ -32,10 +32,9 @@
 #include <unistd.h>
 #include <string.h>
 #include <xenctrl.h>
+#include <xenstore.h>
 
-#ifdef REAL_UUID
 #include <uuid/uuid.h>
-#endif
 
 #ifndef MILLISECS_TO_NANOSECS
 #define MILLISECS_TO_NANOSECS(ms) ((ms)*1000000ll)
@@ -50,7 +49,7 @@ static void usage(char *pname, int rc)
     printf("\tMajor Frame is the sum of all runtimes\n");
     printf("Options:\n");
     printf("\t--help|-h\t\tdisplay this usage information\n");
-    printf("\t--pool|-p\t\tpool id\n");
+    printf("\t--pool|-p\t\tpool name\n");
     exit(rc);
 }
 
@@ -76,6 +75,109 @@ int arinc653_schedule_set(uint32_t cpupool_id,
     return rc;
 }
 
+int find_domain_uuid(struct xs_handle *xsh, char *name,
+                     void* uuid)
+{
+    int i;
+
+    char path[64];
+    void* pxs;
+    char** pdir;
+    unsigned int num;
+    unsigned int len;
+
+    strcpy(path, "/vm");
+    pdir = xs_directory(xsh, XBT_NULL, path, &num);
+
+    if (NULL == pdir)
+    {
+        fprintf(stderr, "Could not open %s xenstore directory!\n",
+                path);
+        return -1;
+    }
+
+    for(i = 0; i < num; ++i)
+    {
+        sprintf(path, "/vm/%s/name", pdir[i]);
+        pxs = xs_read(xsh, XBT_NULL, path, &len);
+
+        if (NULL == pxs)
+        {
+            fprintf(stderr, "Could not read \"%s\" from xenstore!\n",
+                    path);
+            free(pdir);
+            return -1;
+        }
+
+        if (0 == strcmp(pxs, name))
+        {
+            if (uuid_parse(pdir[i], uuid) < 0)
+            {
+               fprintf(stderr, "\"%s\" must not be a uuid.\n",
+                       pdir[i]);
+
+            }
+            free(pxs);
+            free(pdir);
+            return 0;
+        }
+
+        free(pxs);
+    }
+
+    free(pdir);
+    return -1;
+}
+
+int find_pool_id(struct xs_handle *xsh, char *name,
+                 int *pid)
+{
+    int i;
+
+    char path[64];
+    void* pxs;
+    char** pdir;
+    unsigned int num;
+    unsigned int len;
+
+    strcpy(path, "/local/pool");
+    pdir = xs_directory(xsh, XBT_NULL, path, &num);
+
+    if (NULL == pdir)
+    {
+        fprintf(stderr, "Could not open %s xenstore directory!\n",
+                path);
+        return -1;
+    }
+
+    for(i = 0; i < num; ++i)
+    {
+        sprintf(path, "/local/pool/%s/name", pdir[i]);
+        pxs = xs_read(xsh, XBT_NULL, path, &len);
+
+        if (NULL == pxs)
+        {
+            fprintf(stderr, "Could not read \"%s\" from xenstore!\n",
+                    path);
+            free(pdir);
+            return -1;
+        }
+
+        if (0 == strcmp(pxs, name))
+        {
+            *pid = atoi(pdir[i]);
+            free(pxs);
+            free(pdir);
+            return 0;
+        }
+
+        free(pxs);
+    }
+
+    free(pdir);
+    return -1;
+}
+
 int main(int argc, char *argv[])
 {
     int opt, longindex;
@@ -93,6 +195,15 @@ int main(int argc, char *argv[])
 
     uint32_t pool = 0;
 
+    struct xs_handle *xsh;
+
+    xsh = xs_open(XS_OPEN_READONLY);
+    if (NULL == xsh)
+    {
+        fprintf(stderr, "Failed to get xenstore handle.\n");
+        return 1;
+    }
+
     while ((opt = getopt_long(argc, argv, "hp:", longopts, &longindex)) != -1)
     {
         switch (opt)
@@ -106,12 +217,12 @@ int main(int argc, char *argv[])
                     usage(argv[0], 0);
                 }
 
-		pool = atoi(optarg);
-		if (pool < 0)
-		{
-                    usage(argv[0], 0);
-		}
-		break;
+                if (find_pool_id(xsh, optarg, &pool) < 0)
+                {
+                   printf("Couldn't find pool named \"%s\".\n", optarg);
+                   printf("Using default pool.\n", last_str);
+                }
+                break;
             default:
                 usage(argv[0], 2);
                 break;
@@ -131,7 +242,8 @@ int main(int argc, char *argv[])
       usage(argv[0], 2);
     }
 
-    for (i = optind, j = 0; (i < argc); ++i, ++j)
+    j = 0;
+    for (i = optind; (i < argc); ++i)
     {
 
         last_str = argv[i];
@@ -141,14 +253,17 @@ int main(int argc, char *argv[])
         {
             *arg_str = '\0';
 
-#ifdef REAL_UUID
-            uuid_parse(last_str, sched.sched_entries[i].dom_handle);
-#else
-            /* Assumes UUID is Domain name in ASCII */
-            strncpy((char *)sched.sched_entries[j].dom_handle,
-                    last_str,
-                    sizeof(sched.sched_entries[j].dom_handle));
-#endif
+            if (strlen(last_str) != 0)
+            {
+                if (find_domain_uuid(xsh, last_str,
+                                     sched.sched_entries[j].dom_handle) < 0)
+                {
+                   printf("Couldn't find VM named \"%s\".\n", last_str);
+                   printf("Skipping it.\n", last_str);
+                   continue;
+                }
+            }
+
             sched.sched_entries[j].vcpu_id = 0;
         }
         else
@@ -167,6 +282,7 @@ int main(int argc, char *argv[])
         }
 
         maj_time += sched.sched_entries[j].runtime;
+        ++j;
     }
 
     sched.major_frame = maj_time;
@@ -183,4 +299,5 @@ int main(int argc, char *argv[])
         return 0;
     }
 
+    xs_close(xsh);
 }
