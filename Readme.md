@@ -4,13 +4,12 @@ This project provides a way to set an arinc653 schedule from the command line.
 
 ## Build Instructions
 
-These build instructions assume that you are using the Xen Xilinx Distribution
-and following the XZD User Manual.
+These build instructions assume that you have a properly installed and sourced
+Xen Xilinx Distribution Yocto toolchain.
 
-1.	`cd $RELEASE_DIR`
-2.  `git clone https://github.com/dornerworks/a653_sched`
-3.  `cd a653_sched`
-4.	`make`
+1.  `git clone https://github.com/dornerworks/a653_sched`
+2.  `cd a653_sched`
+3.	`make`
 
 ## Run Instructions
 
