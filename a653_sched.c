@@ -288,7 +288,12 @@ int main(int argc, char *argv[])
     sched.major_frame = maj_time;
     sched.num_sched_entries = j;
 
-    if (arinc653_schedule_set(pool, (void*)&sched) < 0)
+    if (0 == j)
+    {
+       printf("No valid domain entries.\n");
+       usage(argv[0], 2);
+    }
+    else if (arinc653_schedule_set(pool, (void*)&sched) < 0)
     {
         printf("operation failed\n");
         return 1;
