@@ -263,6 +263,12 @@ int main(int argc, char *argv[])
                    continue;
                 }
             }
+            else
+            {
+               /* Dom0 entry */
+               memset(sched.sched_entries[j].dom_handle, 0,
+                      sizeof(sched.sched_entries[j].dom_handle));
+            }
 
             sched.sched_entries[j].vcpu_id = 0;
         }
