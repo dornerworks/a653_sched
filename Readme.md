@@ -7,6 +7,10 @@ This project provides a way to set an arinc653 schedule from the command line.
 These build instructions assume that you have a properly installed and sourced
 Xen Xilinx Distribution Yocto toolchain.
 
+It is also assumed that at least one Xilinx SDK cross compiling toolchain is
+installed in the `/opt/Xilinx` directory.  When multiple toolchains exist
+the Makefile will use the latest toolchain version.
+
 1.  `git clone https://github.com/dornerworks/a653_sched`
 2.  `cd a653_sched`
 3.	`make`
