@@ -16,7 +16,7 @@ SYSROOT := $(BUILD_ROOT_DIR)/output/host/usr/aarch64-buildroot-linux-gnu/sysroot
 LDPATH := $(XENPATH)/dist/install/usr/local/lib/
 
 $(TARGET): $(TARGET).c
-	$(CC) --sysroot=$(SYSROOT) -I$(XENPATH)tools/include/ -I$(XENPATH)tools/libxc/include/ -I$(XENPATH)tools/xenstore/include/ -I$(XENPATH)tools/libs/toollog/include/ -o $@ $^ -L$(LDPATH) -luuid -lxenctrl -lxentoollog -lxenevtchn -lxengnttab -lxencall -lxenforeignmemory -lxenstore
+	$(CC) --sysroot=$(SYSROOT) -I$(XENPATH)tools/include/ -I$(XENPATH)tools/libxc/include/ -I$(XENPATH)tools/xenstore/include/ -I$(XENPATH)tools/libs/toollog/include/ -o $@ $^ -L$(LDPATH) -luuid -lxenctrl -lxenstore
 
 clean:
 	-$(RM) $(TARGET) *.o
