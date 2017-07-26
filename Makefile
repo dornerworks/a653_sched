@@ -2,7 +2,7 @@ TARGET := a653_sched
 
 all: check_env $(TARGET)
 
-CC := $(shell find /opt/Xilinx -iname aarch64-linux-gnu-gcc | sort -Vr | head -1)
+CC := $(shell find /opt/Xilinx/SDK/ -iname aarch64-linux-gnu-gcc | sort -Vr | head -1)
 
 .PHONY: check_env
 check_env:
