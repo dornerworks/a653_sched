@@ -49,6 +49,8 @@ static void usage(char *pname, int rc)
     printf("\tMajor Frame is the sum of all runtimes\n");
     printf("Options:\n");
     printf("\t--help|-h\t\tdisplay this usage information\n");
+    printf("\t--ids|-i\t\tUser provided UUIDs\n");
+    printf("\t--names|-n\t\tUser provided UUIDs as ASCII\n");
     printf("\t--pool|-p\t\tpool name\n");
     exit(rc);
 }
@@ -180,10 +182,15 @@ int find_pool_id(struct xs_handle *xsh, char *name,
 
 int main(int argc, char *argv[])
 {
+    int names = 0;
+    int uuids = 0;
+
     int opt, longindex;
     static const struct option longopts[] = {
-        {"help",        no_argument,        NULL, 'h'},
-        {"pool",        required_argument,  NULL, 'p'},
+        {"names",       no_argument,        &names, 'n'},
+        {"ids",         no_argument,        &uuids, 'i'},
+        {"help",        no_argument,        NULL,   'h'},
+        {"pool",        required_argument,  NULL,   'p'},
         {NULL,          0,                  NULL,   0}
     };
 
@@ -204,12 +211,17 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    while ((opt = getopt_long(argc, argv, "hp:", longopts, &longindex)) != -1)
+    while ((opt = getopt_long(argc, argv, "hinp:", longopts, &longindex)) != -1)
     {
         switch (opt)
         {
             case 'h':
                 usage(argv[0], 0);
+                break;
+            case 'n':
+                printf("Using command-line provided names instead of XenStore.\n");
+            case 'i':
+                printf("Using command-line provided UUIDs instead of XenStore.\n");
                 break;
             case 'p':
                 if (NULL == optarg)
@@ -255,7 +267,19 @@ int main(int argc, char *argv[])
 
             if (strlen(last_str) != 0)
             {
-                if (find_domain_uuid(xsh, last_str,
+
+                if (uuids)
+                {
+                   uuid_parse(last_str, sched.sched_entries[i].dom_handle);
+                }
+                else if (names)
+                {
+                   /* UUID is Domain name in ASCII */
+                   strncpy((char *)sched.sched_entries[j].dom_handle,
+                           last_str,
+                           sizeof(sched.sched_entries[j].dom_handle));
+                }
+                else if (find_domain_uuid(xsh, last_str,
                                      sched.sched_entries[j].dom_handle) < 0)
                 {
                    printf("Couldn't find VM named \"%s\".\n", last_str);

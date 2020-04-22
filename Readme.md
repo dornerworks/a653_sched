@@ -30,7 +30,7 @@ the Makefile will use the latest toolchain version.
 
 Using a653\_sched we can assign sequential minor frames by specificying the
 domain to run and its time slice in ms with a
-"\<domain name\>:\<time slice in ms\>" pair.  The major frame is set to
+"\<domain identifier\>:\<time slice in ms\>" pair.  The major frame is set to
 the sum of all minor frames and if Dom0 is in the arinc653 pool it uses
 idle time for its' processing.
 
@@ -62,6 +62,34 @@ you will need to clear the domain information cached in the xenstore
 to avoid UUID conflicts.  To do this run the `xenstore-rm /vm`
 command in dom0.
 
+#### User Provided Names as UUIDs
+
+With the `-n` switch, the tool will use the ASCII name of the domain
+directly as the UUID.  The command is the same as the previous example
+with the inclusion of the requisite switch, but the UUID for the domain
+must be representable as an ASCII string.
+
+To construct an appropriate UUID from the domain name:
+
+- Convert the domain's name to hex
+```
+echo -n "dom1" | xxd -p
+646f6d31
+```
+- Format the hex name as a UUID and assign it to the domain in the xen config
+  file for the domain.
+```
+uuid = "646f6d31-0000-0000-0000-000000000000"
+```
+
+#### User Provided UUIDs
+
+Using the `-i` switch the tool can instead use uuids provided directly
+on the command-line.  The previous example then becomes:
+
+`./a653_sched -p arinc_pool 646f6d31-0000-0000-0000-000000000000:10 :20
+    646f6d32-0000-0000-0000-000000000000:30`
+
 ### Help
 ```
 Usage: ./a653_sched <domname:runtime> ...
@@ -70,5 +98,7 @@ Usage: ./a653_sched <domname:runtime> ...
 	Major Frame is the sum of all runtimes
 Options:
 	--help|-h		display this usage information
+	--ids|-i		User provided UUIDs
+	--names|-n		User provided UUIDs as ASCII
 	--pool|-p		pool name
 ```
