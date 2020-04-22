@@ -94,11 +94,12 @@ on the command-line.  The previous example then becomes:
 ```
 Usage: ./a653_sched <domname:runtime> ...
 
-	All times are in milliseconds
+	All times are in milliseconds by default
 	Major Frame is the sum of all runtimes
 Options:
 	--help|-h		display this usage information
 	--ids|-i		User provided UUIDs
 	--names|-n		User provided UUIDs as ASCII
+	--micro|-u		Times are in microseconds
 	--pool|-p		pool name
 ```

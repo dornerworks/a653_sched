@@ -40,17 +40,24 @@
 #define MILLISECS_TO_NANOSECS(ms) ((ms)*1000000ll)
 #endif
 
+#define MIN_TIMESLICE 20ULL
+
+#ifndef MICROSECS_TO_NANOSECS
+#define MICROSECS_TO_NANOSECS(ms) ((ms)*1000ll)
+#endif
+
 static struct xen_sysctl_arinc653_schedule sched;
 
 static void usage(char *pname, int rc)
 {
     printf("Usage: %s <domname:runtime> ...\n\n", pname);
-    printf("\tAll times are in milliseconds\n");
+    printf("\tAll times are in milliseconds by default\n");
     printf("\tMajor Frame is the sum of all runtimes\n");
     printf("Options:\n");
     printf("\t--help|-h\t\tdisplay this usage information\n");
     printf("\t--ids|-i\t\tUser provided UUIDs\n");
     printf("\t--names|-n\t\tUser provided UUIDs as ASCII\n");
+    printf("\t--micro|-i\t\tTimes are in microseconds\n");
     printf("\t--pool|-p\t\tpool name\n");
     exit(rc);
 }
@@ -184,11 +191,13 @@ int main(int argc, char *argv[])
 {
     int names = 0;
     int uuids = 0;
+    int micro = 0;
 
     int opt, longindex;
     static const struct option longopts[] = {
         {"names",       no_argument,        &names, 'n'},
         {"ids",         no_argument,        &uuids, 'i'},
+        {"micro",       no_argument,        &micro, 'u'},
         {"help",        no_argument,        NULL,   'h'},
         {"pool",        required_argument,  NULL,   'p'},
         {NULL,          0,                  NULL,   0}
@@ -199,6 +208,8 @@ int main(int argc, char *argv[])
     char *arg_str;
     char *last_str;
     int64_t maj_time = 0;
+
+    uint64_t runtime = 0;
 
     uint32_t pool = 0;
 
@@ -222,6 +233,9 @@ int main(int argc, char *argv[])
                 printf("Using command-line provided names instead of XenStore.\n");
             case 'i':
                 printf("Using command-line provided UUIDs instead of XenStore.\n");
+                break;
+            case 'u':
+                printf("Micro-second timeslices enabled.\n");
                 break;
             case 'p':
                 if (NULL == optarg)
@@ -303,13 +317,30 @@ int main(int argc, char *argv[])
         }
 
         ++arg_str;
-        sched.sched_entries[j].runtime = MILLISECS_TO_NANOSECS(atoi(arg_str));
 
-        if (sched.sched_entries[j].runtime <= 0)
+        runtime = atoi(arg_str);
+
+        if (runtime <= 0)
         {
-            printf("Invalid run time (%llu).\n", sched.sched_entries[j].runtime);
-            usage(argv[0], 2);
+           printf("Invalid run time (%llu).\n", runtime);
+           usage(argv[0], 2);
         }
+
+        if (micro)
+        {
+           if (runtime <= MIN_TIMESLICE)
+           {
+              printf("\t***Warning: Timeslices of %d us or less are likely"
+                     " to starve the domain.***\n", MIN_TIMESLICE);
+           }
+
+           sched.sched_entries[j].runtime = MICROSECS_TO_NANOSECS(runtime);
+        }
+        else
+        {
+           sched.sched_entries[j].runtime = MILLISECS_TO_NANOSECS(runtime);
+        }
+
 
         maj_time += sched.sched_entries[j].runtime;
         ++j;
